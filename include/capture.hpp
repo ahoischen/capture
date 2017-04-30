@@ -76,6 +76,8 @@ namespace {
                 const std::string test_log_location, 
                 const std::string test_reporter) 
         {
+            std::cout << "\x1b[2J";
+
             std::cout << "Press " << kLogLocationKeyName 
                 << " to change the location of the log file. Current value:" 
                 << std::endl << test_log_location << std::endl;
