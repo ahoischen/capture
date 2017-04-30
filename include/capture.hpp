@@ -68,33 +68,33 @@ namespace {
         const std::string kTagKeyName = "Y";
         constexpr uint32_t kStartTestKey = KEY_START;
         const std::string kStartTestKeyName = "START";
-        //constexpr uint32_t kStopApplicationKey = KEY_SELECT;
-        //const string kStopApplicationKeyName = "SELECT";
+        constexpr uint32_t kStopApplicationKey = KEY_SELECT;
+        const std::string kStopApplicationKeyName = "SELECT";
+
+        void DrawSettingInfo(
+                const std::string variable_info,
+                const std::string value,
+                const std::string key_name)
+        {
+            std::cout << "(\x1b[32m" << key_name << "\x1b[0m) "
+                << variable_info << std::endl
+                << "\x1b[33m" << value << "\x1b[0m" << std::endl
+                << std::endl;
+        }
 
         void DrawStatusInfo(
                 const std::string tags, 
                 const std::string test_log_location, 
                 const std::string test_reporter) 
         {
-            std::cout << "\x1b[2J";
+            std::cout << "\x1b[2J\x1b[20CTEST CONFIG" << std::endl << std::endl;
 
-            std::cout << "Press " << kLogLocationKeyName 
-                << " to change the location of the log file. Current value:" 
-                << std::endl << test_log_location << std::endl;
+            DrawSettingInfo("Log File", test_log_location, kLogLocationKeyName);
+            DrawSettingInfo("Test Reporter", test_reporter, kReporterKeyName);
+            DrawSettingInfo("Tags", tags, kTagKeyName);
 
-            std::cout << "Press " << kReporterKeyName
-                << " to change the test reporter. Current value:"
-                << std::endl << test_reporter << std::endl;
-
-            std::cout << "Press" << kTagKeyName
-                << " to change the test tags. Current value:"
-                << std::endl << tags << std::endl;
-
-            std::cout << "Press" << kStartTestKeyName
-                << " to start the tests." << std::endl;
-
-            //std::cout << "Press" << kStopApplicationKeyName
-            //    << " to stop the application." << std::endl;
+            std::cout << "(\x1b[32m" << kStartTestKeyName << "\x1b[0m) "
+                << "Start the test.";
         }
         
         // Opens the software keyboard with an initial value and returns
@@ -171,13 +171,18 @@ namespace {
             // Execute the now configured tests.
             int test_exit_code = RunTests(tags, test_log_location, test_reporter);
 
+            std::cout << "\x1b[2J\x1b[20C" << "Tests finished!" << std::endl 
+                << std::endl
+                << "(\x1b[32m" << kStopApplicationKeyName  << "\x1b[0m) "
+                << "Close application.";
+
             // Wait for the user to close the app.
             while(aptMainLoop()) {
                 hidScanInput();
                 gfxFlushBuffers();
                 gfxSwapBuffers();
                 gspWaitForVBlank();
-                if (hidKeysDown() & KEY_SELECT) {
+                if (hidKeysDown() & kStopApplicationKey) {
                     break;
                 }
             }
