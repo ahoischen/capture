@@ -15,23 +15,11 @@
 #include "3ds.h"
 
 #include "config/CaptureConfig.h"
+#include "resources/Console.h"
+#include "resources/GFX.h"
+#include "resources/RomFS.h"
 
 const std::string kConfigFilename="romfs:/CaptureConfig.toml";
-
-void SetupTestingEnvironment() {
-    gfxInitDefault();
-    consoleInit(GFX_TOP, NULL);
-    Result romfs_code = romfsInit();
-    gspWaitForVBlank();
-
-    if (romfs_code < 0) {
-        printf("Romfs Init failed: %08X", romfs_code);
-    }
-}
-
-void TearDownTestingEnvironment() {
-    gfxExit();
-}
 
 #ifndef CAPTURE_OPTION_NONINTERACTIVE
     #define CAPTURE_INTERACTIVE
@@ -77,7 +65,6 @@ namespace capture {
         config::CaptureConfig config(config::CreateConfigFromFile(kConfigFilename));
         return RunTests(config.CreateCatchArgumentVector());
     }
-
 
     // Detects if the test is running automatically or with human input.
     // It currently does this by asking the user do hold any button at startup.
@@ -239,7 +226,9 @@ namespace capture {
 
 int main(int argc, char** argv) 
 {
-    SetupTestingEnvironment();
+    capture::resources::GFX gfx();
+    capture::resources::Console console(GFX_TOP);
+    capture::resources::RomFS romFS();
 
     int exit_code = 0x1ff;
 
@@ -250,8 +239,6 @@ int main(int argc, char** argv)
         exit_code = capture::RunAutomaticTests();
     }
     
-    TearDownTestingEnvironment();
-
     capture::WriteExitCode(exit_code, capture::kDefaultExitLocation);
 
 
