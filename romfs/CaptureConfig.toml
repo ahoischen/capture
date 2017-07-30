@@ -7,6 +7,16 @@
 # Where to write catch's exit code to
 ExitCodeFile = "/CatchExit.bin"
 
+[Capture.Keys]
+
+StartInteractive = "Any"
+EnableOption = "A"
+ChangeOption = "X"
+MoveUp = "Up"
+MoveDown = "Down"
+CloseApplication = "Select"
+StartTests = "Start"
+
 
 
 # Configuration for catch. For details please see 

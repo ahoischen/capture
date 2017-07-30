@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "config/CaptureKeys.h"
 #include "config/CatchOption.h"
 #include "config/CatchValueOption.h"
 
@@ -12,10 +13,16 @@ namespace capture::config {
     // Represents the configuration for capture.
     class CaptureConfig {
         std::vector<std::unique_ptr<CatchOption>> _options;
+        CaptureKeys _captureKeys;
         std::string _exitCodeFile;
         std::string _testSpec;
 
+        friend CaptureConfig CreateConfigFromFile(std::string);
+
     public:
+        const CaptureKeys &GetCaptureKeys() const { return _captureKeys; }
+        void SetCaptureKeys(CaptureKeys value) { _captureKeys = value; }
+
         const std::vector<std::unique_ptr<CatchOption>> &GetOptions() const { return _options; }
         std::vector<std::unique_ptr<CatchOption>> &GetOptions() { return _options; }
         

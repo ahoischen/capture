@@ -13,6 +13,7 @@ namespace capture::config {
     const std::string kExitCodeFileKey = "Capture.ExitCodeFile";
     const std::string kTestSpecKey = "Catch.TestSpec";
     const std::string kCatchOptionKey = "Catch.Option";
+    const std::string kCaptureKeysKey = "Catch.Keys";
     const std::string kCatchOptionNameKey = "Name";
     const std::string kCatchOptionValueKey = "Value";
     const std::string kCatchOptionEnabledKey = "Enabled";
@@ -80,11 +81,18 @@ namespace capture::config {
         if(!configFile->contains_qualified(kExitCodeFileKey)) {
             throw InvalidConfigurationException();
         }
-
-        // Fill fields.
-        captureConfig.SetExitCodeFile(configFile->get_qualified_as<std::string>(kExitCodeFileKey).value_or(""));
-        captureConfig.SetTestSpec(configFile->get_qualified_as<std::string>(kTestSpecKey).value_or(""));
-        ParseCatchOptions(configFile.get(), captureConfig.GetOptions());
+        if ( configFile->contains_qualified(kExitCodeFileKey)
+            && configFile->contains_qualified(kCaptureKeysKey)) 
+        {
+            // Fill fields.
+            captureConfig.SetExitCodeFile(configFile->get_qualified_as<std::string>(kExitCodeFileKey).value_or(""));
+            captureConfig.SetTestSpec(configFile->get_qualified_as<std::string>(kTestSpecKey).value_or(""));
+            captureConfig._captureKeys.InitFromTable(configFile->get_table_qualified(kCaptureKeysKey));
+            ParseCatchOptions(configFile.get(), captureConfig.GetOptions());
+        }
+        else {
+            throw InvalidConfigurationException();
+        }
 
         return captureConfig;
     }
