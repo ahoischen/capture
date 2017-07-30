@@ -3,6 +3,9 @@ build/
 *.3dsx
 *.elf
 *.smdh
+*.cia
+*.cci
+*.bnr
 
 # Add files for your editors here.
 # Just sneak 'em in with your first commit.

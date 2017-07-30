@@ -17,6 +17,8 @@ include $(DEVKITARM)/3ds_rules
 # INCLUDES is a list of directories containing header files
 #
 # NO_SMDH: if set to anything, no SMDH file is generated.
+# NO_CIA
+# NO_CCI
 # ROMFS is the directory which contains the RomFS, relative to the Makefile (Optional)
 # APP_TITLE is the name of the app stored in the SMDH file (Optional)
 # APP_DESCRIPTION is the description of the app stored in the SMDH file (Optional)
@@ -33,6 +35,10 @@ SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include Catch/single_include cpptoml/include
 ROMFS		:=	romfs
+
+BANNER_IMAGE	:= $(TOPDIR)/assets/banner.png
+BANNER_AUDIO	:= $(TOPDIR)/assets/banner.wav
+RSF_FILE	:= $(TOPDIR)/assets/Application.rsf
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -146,7 +152,7 @@ $(BUILD):
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(OUTPUT).cia $(OUTPUT).cci $(OUTPUT).bnr
 
 
 #---------------------------------------------------------------------------------
@@ -158,14 +164,32 @@ DEPENDS	:=	$(OFILES:.o=.d)
 # main targets
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(NO_SMDH)),)
-$(OUTPUT).3dsx	:	$(OUTPUT).elf $(OUTPUT).smdh
-else
-$(OUTPUT).3dsx	:	$(OUTPUT).elf
+SMDH_TARGET := $(OUTPUT).smdh
 endif
+
+ifeq ($(strip $(NO_CIA)),)
+CIA_TARGET := $(OUTPUT).cia
+endif
+
+ifeq ($(strip $(NO_CCI)),)
+CCI_TARGET := $(OUTPUT).cci
+endif
+
+$(OUTPUT).3dsx	:	$(OUTPUT).elf $(SMDH_TARGET) $(CIA_TARGET) $(CCI_TARGET)
+
+$(OUTPUT).elf	:	$(OFILES)
+
+$(OUTPUT).cia	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
+	makerom -f cia -o $(OUTPUT).cia -rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr -DAPP_ROMFS=$(TOPDIR)/$(ROMFS)
+
+$(OUTPUT).cci	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
+	makerom -f cci -o $(OUTPUT).cci -rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr -DAPP_ROMFS=$(TOPDIR)/$(ROMFS)
+
+$(OUTPUT).bnr	:	$(BANNER_IMAGE) $(BANNER_AUDIO)
+	bannertool makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $(OUTPUT).bnr
 
 $(OFILES_SOURCES) : $(HFILES)
 
-$(OUTPUT).elf	:	$(OFILES)
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
