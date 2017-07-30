@@ -1,8 +1,48 @@
+# This file describes capture's default configuration. Most settings can be
+# changed when running interactively.
+
+# Configuration for capture itself
 [Capture]
+
+# Where to write catch's exit code to
 ExitCodeFile = "/CatchExit.bin"
 
+
+
+# Configuration for catch. For details please see 
+# https://github.com/philsquared/Catch/blob/master/docs/command-line.md.
 [Catch]
 TestSpec = "[citra]"
+
+[[Catch.Option]]
+Name = "reporter"
+Value = "junit"
+Enabled = true
+
+[[Catch.Option]]
+Name = "break"
+Enabled = false
+
+[[Catch.Option]]
+Name = "success"
+Enabled = false
+
+[[Catch.Option]]
+Name = "abortx"
+Value = 1
+Enabled = false
+
+[[Catch.Option]]
+Name = "list-tests"
+Enabled = false
+
+[[Catch.Option]]
+Name = "list-tags"
+Enabled = false
+
+[[Catch.Option]]
+Name = "list-reporters"
+Enabled = false
 
 [[Catch.Option]]
 Name = "out"
@@ -10,6 +50,47 @@ Value = "/CatchLog.txt"
 Enabled = false
 
 [[Catch.Option]]
-Name = "reporter"
-Value = "junit"
-Enabled = true
+Name = "name"
+Value = ""
+Enabled = false
+
+[[Catch.Option]]
+Name = "nothrow"
+Enabled = false
+
+[[Catch.Option]]
+Name = "invisibles"
+Enabled = false
+
+[[Catch.Option]]
+Name = "warn"
+Enabled = false
+
+[[Catch.Option]]
+Name = "durations"
+Value = "no"
+Enabled = false
+
+[[Catch.Option]]
+Name = "input-file"
+Value = ""
+Enabled = false
+
+[[Catch.Option]]
+Name = "order"
+Value = "lex"
+Enabled = false
+
+[[Catch.Option]]
+Name = "rng-seed"
+Value = "time"
+Enabled = false
+
+[[Catch.Option]]
+Name = "section"
+Value = ""
+Enabled = false
+
+[[Catch.Option]]
+Name = "filenames-as-tags"
+Enabled = false
