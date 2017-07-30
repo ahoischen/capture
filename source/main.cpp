@@ -12,8 +12,9 @@
 #define CATCH_CONFIG_COLOUR_NONE
 #define CATCH_CONFIG_NO_CPP11
 #include "catch.hpp"
-#include "cpptoml.h"
 #include "3ds.h"
+
+#include "config/CaptureConfig.h"
 
 const std::string kConfigFilename="romfs:/CaptureConfig.toml";
 
@@ -37,156 +38,6 @@ void TearDownTestingEnvironment() {
 #endif
 
 namespace capture {
-
-    // Deals with configuration
-    namespace config {
-        // Configuration file key definitions:
-        const std::string kExitCodeFileKey = "Capture.ExitCodeFile";
-        const std::string kTestSpecKey = "Catch.TestSpec";
-        const std::string kCatchOptionKey = "Catch.Option";
-        const std::string kCatchOptionNameKey = "Name";
-        const std::string kCatchOptionValueKey = "Value";
-        const std::string kCatchOptionEnabledKey = "Enabled";
-
-
-        class InvalidConfigurationException : public std::exception {
-
-        };
-
-        // Represents an option for catch
-        class CatchOption {
-            // The option's long name without the `--`.
-            std::string _name;
-
-            // Whether the option is initially enabled.
-            bool _isEnabled;
-
-        public:
-            std::string GetName() const { return _name; }
-            bool GetIsEnabled() const { return _isEnabled; }
-            void SetIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
-
-            // Appends its string representation to an Argument vector.
-            virtual void AddTo(std::vector<std::string> &catchArgv) const {
-                
-                catchArgv.push_back("--" + _name);
-
-            }
-
-            CatchOption (std::string name, bool isEnabled) : _name(name), _isEnabled(isEnabled) {}
-        };
-
-        // Represents an option for catch that has a value.
-        class CatchValueOption : public CatchOption {
-            // The option's value encoded as a string.
-            std::string _value;
-
-        public:
-            std::string GetValue() const { return _value; }
-            void SetValue(const std::string value) { _value = value; }
-
-            // Appends its string representation to an Argument vector.
-            void AddTo(std::vector<std::string> &catchArgv) const override {
-                CatchOption::AddTo(catchArgv);
-                catchArgv.push_back(_value);
-            }
-
-            CatchValueOption(std::string name, std::string value, bool isEnabled) : _value(value), CatchOption(name, isEnabled) {}
-        };
-
-        // Parses the config file into CatchOptions. Takes a pointer to the root of the TOML document's table and
-        // a vector to output the options to.
-        void ParseCatchOptions(
-            const cpptoml::table *configFile,
-            std::vector<std::unique_ptr<CatchOption>> &options) {
-
-            auto config = configFile->get_table_array_qualified(kCatchOptionKey);
-
-            // Each CatchOption represents one argument with or without value to catch.
-            for (const auto& table : *config)
-            {
-                // Each must contain a Name and an Enabled key.
-                if (table->contains(kCatchOptionNameKey) && table->contains(kCatchOptionEnabledKey))
-                {
-                    // CatchValueOptions must contain a Value key.
-                    if(table->contains(kCatchOptionValueKey))
-                    {
-                        // This isn't correct error handling:
-                        options.push_back(std::make_unique<CatchValueOption>(
-                            table->get_as<std::string>(kCatchOptionNameKey).value_or("ERROR"),
-                            table->get_as<std::string>(kCatchOptionValueKey).value_or(""),
-                            table->get_as<bool>(kCatchOptionEnabledKey).value_or(false)
-                        ));
-                    }
-                    else 
-                    {
-                        options.push_back(std::make_unique<CatchOption>(
-                            table->get_as<std::string>(kCatchOptionNameKey).value_or("ERROR"),
-                            table->get_as<bool>(kCatchOptionEnabledKey).value_or(false)
-                        ));
-                    }
-                }
-                else
-                {
-                    throw InvalidConfigurationException();
-                }
-            }
-        }
-
-        // Represents the configuration for capture.
-        class CaptureConfig {
-            std::vector<std::unique_ptr<CatchOption>> _options;
-            std::string _exitCodeFile;
-            std::string _testSpec;
-
-        public:
-            const std::vector<std::unique_ptr<CatchOption>> &GetOptions() const { return _options; }
-            std::vector<std::unique_ptr<CatchOption>> &GetOptions() { return _options; }
-            
-            std::string GetExitCodeFile() const { return _exitCodeFile; }
-            void SetExitCodeFile(std::string exitCodeFile) { _exitCodeFile = exitCodeFile; }
-
-            std::string GetTestSpec() const { return _testSpec; }
-            void SetTestSpec(std::string testSpec) { _testSpec = testSpec; }
-
-            std::vector<std::string> CreateCatchArgumentVector();
-        };
-
-        std::vector<std::string> CaptureConfig::CreateCatchArgumentVector() {
-            std::vector<std::string> args;
-            
-            args.push_back("catch");
-
-            for (int i = 0; i < GetOptions().size(); ++i) {
-                if (GetOptions()[i]->GetIsEnabled()) {
-                    GetOptions()[i]->AddTo(args);
-                }
-            }
-
-            args.push_back(GetTestSpec());
-
-            return args;
-        }
-
-        CaptureConfig CreateConfigFromFile(std::string configFileName) {
-            auto configFile = cpptoml::parse_file(configFileName);
-            CaptureConfig captureConfig;
-
-            // Ensure the config file is properly formatted.
-            if(!configFile->contains_qualified(kExitCodeFileKey)) {
-                throw InvalidConfigurationException();
-            }
-
-            // Fill fields.
-            captureConfig.SetExitCodeFile(configFile->get_qualified_as<std::string>(kExitCodeFileKey).value_or(""));
-            captureConfig.SetTestSpec(configFile->get_qualified_as<std::string>(kTestSpecKey).value_or(""));
-            ParseCatchOptions(configFile.get(), captureConfig.GetOptions());
-
-            return captureConfig;
-        }
-
-    } // namespace config
-
     const std::string kDefaultTestTags = "[citra]";
     const std::string kDefaultTestLocation = "/Test Log.txt";
     const std::string kDefaultExitLocation = "/Test Finished.bin";

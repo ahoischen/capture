@@ -31,7 +31,7 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	capture
 BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	source $(sort $(wildcard source/**/)) 
 DATA		:=	data
 INCLUDES	:=	include Catch/single_include cpptoml/include
 ROMFS		:=	romfs
@@ -51,7 +51,7 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
 
-CXXFLAGS	:= $(CFLAGS) -std=gnu++14 \
+CXXFLAGS	:= $(CFLAGS) -std=gnu++17 \
   	-DCATCH_CONFIG_NO_POSIX_SIGNALS \
 	-DCATCH_CONFIG_COLOUR_ANSI \
 	-DCATCH_CONFIG_CONSOLE_WIDTH=50
