@@ -1,1 +1,9 @@
+# Compiled binaries
 build/
+*.3dsx
+*.elf
+*.smdh
+
+# Add files for your editors here.
+# Just sneak 'em in with your first commit.
+.vscode/
