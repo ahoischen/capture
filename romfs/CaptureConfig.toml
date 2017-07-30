@@ -1,0 +1,15 @@
+[Capture]
+ExitCodeFile = "/CatchExit.bin"
+
+[Catch]
+TestSpec = "[citra]"
+
+[[Catch.Option]]
+Name = "out"
+Value = "/CatchLog.txt"
+Enabled = false
+
+[[Catch.Option]]
+Name = "reporter"
+Value = "junit"
+Enabled = true

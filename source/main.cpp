@@ -4,25 +4,188 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdint>
+#include <vector>
+#include <exception>
+#include <cstring>
 
 #define CATCH_CONFIG_RUNNER
 #define CATCH_CONFIG_COLOUR_NONE
 #define CATCH_CONFIG_NO_CPP11
 #include "catch.hpp"
+#include "cpptoml.h"
 #include "3ds.h"
+
+const std::string kConfigFilename="romfs:/CaptureConfig.toml";
 
 void SetupTestingEnvironment() {
     gfxInitDefault();
     consoleInit(GFX_TOP, NULL);
+    Result romfs_code = romfsInit();
     gspWaitForVBlank();
+
+    if (romfs_code < 0) {
+        printf("Romfs Init failed: %08X", romfs_code);
+    }
 }
 
 void TearDownTestingEnvironment() {
     gfxExit();
 }
 
+#ifndef CAPTURE_OPTION_NONINTERACTIVE
+    #define CAPTURE_INTERACTIVE
+#endif
 
-namespace {
+namespace capture {
+
+    // Deals with configuration
+    namespace config {
+        // Configuration file key definitions:
+        const std::string kExitCodeFileKey = "Capture.ExitCodeFile";
+        const std::string kTestSpecKey = "Catch.TestSpec";
+        const std::string kCatchOptionKey = "Catch.Option";
+        const std::string kCatchOptionNameKey = "Name";
+        const std::string kCatchOptionValueKey = "Value";
+        const std::string kCatchOptionEnabledKey = "Enabled";
+
+
+        class InvalidConfigurationException : public std::exception {
+
+        };
+
+        // Represents an option for catch
+        class CatchOption {
+            // The option's long name without the `--`.
+            std::string _name;
+
+            // Whether the option is initially enabled.
+            bool _isEnabled;
+
+        public:
+            std::string GetName() const { return _name; }
+            bool GetIsEnabled() const { return _isEnabled; }
+            void SetIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
+
+            // Appends its string representation to an Argument vector.
+            virtual void AddTo(std::vector<std::string> &catchArgv) const {
+                
+                catchArgv.push_back("--" + _name);
+
+            }
+
+            CatchOption (std::string name, bool isEnabled) : _name(name), _isEnabled(isEnabled) {}
+        };
+
+        // Represents an option for catch that has a value.
+        class CatchValueOption : public CatchOption {
+            // The option's value encoded as a string.
+            std::string _value;
+
+        public:
+            std::string GetValue() const { return _value; }
+            void SetValue(const std::string value) { _value = value; }
+
+            // Appends its string representation to an Argument vector.
+            void AddTo(std::vector<std::string> &catchArgv) const override {
+                CatchOption::AddTo(catchArgv);
+                catchArgv.push_back(_value);
+            }
+
+            CatchValueOption(std::string name, std::string value, bool isEnabled) : _value(value), CatchOption(name, isEnabled) {}
+        };
+
+        // Parses the config file into CatchOptions. Takes a pointer to the root of the TOML document's table and
+        // a vector to output the options to.
+        void ParseCatchOptions(
+            const cpptoml::table *configFile,
+            std::vector<std::unique_ptr<CatchOption>> &options) {
+
+            auto config = configFile->get_table_array_qualified(kCatchOptionKey);
+
+            // Each CatchOption represents one argument with or without value to catch.
+            for (const auto& table : *config)
+            {
+                // Each must contain a Name and an Enabled key.
+                if (table->contains(kCatchOptionNameKey) && table->contains(kCatchOptionEnabledKey))
+                {
+                    // CatchValueOptions must contain a Value key.
+                    if(table->contains(kCatchOptionValueKey))
+                    {
+                        // This isn't correct error handling:
+                        options.push_back(std::make_unique<CatchValueOption>(
+                            table->get_as<std::string>(kCatchOptionNameKey).value_or("ERROR"),
+                            table->get_as<std::string>(kCatchOptionValueKey).value_or(""),
+                            table->get_as<bool>(kCatchOptionEnabledKey).value_or(false)
+                        ));
+                    }
+                    else 
+                    {
+                        options.push_back(std::make_unique<CatchOption>(
+                            table->get_as<std::string>(kCatchOptionNameKey).value_or("ERROR"),
+                            table->get_as<bool>(kCatchOptionEnabledKey).value_or(false)
+                        ));
+                    }
+                }
+                else
+                {
+                    throw InvalidConfigurationException();
+                }
+            }
+        }
+
+        // Represents the configuration for capture.
+        class CaptureConfig {
+            std::vector<std::unique_ptr<CatchOption>> _options;
+            std::string _exitCodeFile;
+            std::string _testSpec;
+
+        public:
+            const std::vector<std::unique_ptr<CatchOption>> &GetOptions() const { return _options; }
+            std::vector<std::unique_ptr<CatchOption>> &GetOptions() { return _options; }
+            
+            std::string GetExitCodeFile() const { return _exitCodeFile; }
+            void SetExitCodeFile(std::string exitCodeFile) { _exitCodeFile = exitCodeFile; }
+
+            std::string GetTestSpec() const { return _testSpec; }
+            void SetTestSpec(std::string testSpec) { _testSpec = testSpec; }
+
+            std::vector<std::string> CreateCatchArgumentVector();
+        };
+
+        std::vector<std::string> CaptureConfig::CreateCatchArgumentVector() {
+            std::vector<std::string> args;
+            
+            args.push_back("catch");
+
+            for (int i = 0; i < GetOptions().size(); ++i) {
+                if (GetOptions()[i]->GetIsEnabled()) {
+                    GetOptions()[i]->AddTo(args);
+                }
+            }
+
+            args.push_back(GetTestSpec());
+
+            return args;
+        }
+
+        CaptureConfig CreateConfigFromFile(std::string configFileName) {
+            auto configFile = cpptoml::parse_file(configFileName);
+            CaptureConfig captureConfig;
+
+            // Ensure the config file is properly formatted.
+            if(!configFile->contains_qualified(kExitCodeFileKey)) {
+                throw InvalidConfigurationException();
+            }
+
+            // Fill fields.
+            captureConfig.SetExitCodeFile(configFile->get_qualified_as<std::string>(kExitCodeFileKey).value_or(""));
+            captureConfig.SetTestSpec(configFile->get_qualified_as<std::string>(kTestSpecKey).value_or(""));
+            ParseCatchOptions(configFile.get(), captureConfig.GetOptions());
+
+            return captureConfig;
+        }
+
+    } // namespace config
 
     const std::string kDefaultTestTags = "[citra]";
     const std::string kDefaultTestLocation = "/Test Log.txt";
@@ -31,22 +194,28 @@ namespace {
     
     // This functions interface is likely to be changed to abstract away from 
     // Catch's command line arguments.
-    int RunTests(
-            const std::string tags,
-            const std::string test_log_location,
-            const std::string test_reporter) {
-        // Build the argv in an arrray so that its number of elements is preserved
-        // throughout the function.
-        std::array<const char*, 6> catch_arguments{
-            "catch",
-            "--out",
-            test_log_location.c_str(),
-            "--reporter",
-            test_reporter.c_str(),
-            tags.c_str()
-        };
+    int RunTests(const std::vector<std::string> &args) {
+        char** cArgs = new char*[args.size()]; 
 
-        return Catch::Session().run(catch_arguments.size(), catch_arguments.data());
+        for (size_t i = 0; i < args.size(); ++i) {
+            std::cout << args[i] << std::endl;
+            
+            char* copied_string = new char[args[i].length()+1];
+            strcpy(copied_string, args[i].c_str());
+
+            cArgs[i] = copied_string;
+        }
+
+        svcSleepThread(1000000000);
+
+        for (size_t i = 0; i < args.size(); ++i) {
+            std::cout << cArgs[i] << std::endl;
+        }
+
+        
+        svcSleepThread(5000000000);        
+
+        return Catch::Session().run(args.size(), cArgs);
     }
 
 
@@ -54,7 +223,8 @@ namespace {
     // platform. Writes test output to a file on the sdmc for later use and runs
     // tests tagged with the platform's default string.
     int RunAutomaticTests() {
-        return RunTests(kDefaultTestTags,kDefaultTestLocation, kDefaultTestReporter);
+        config::CaptureConfig config(config::CreateConfigFromFile(kConfigFilename));
+        return RunTests(config.CreateCatchArgumentVector());
     }
 
 
@@ -64,6 +234,8 @@ namespace {
         hidScanInput();
         return hidKeysDown() != 0;
     }
+
+    #ifdef CAPTURE_INTERACTIVE
 
     namespace interactive {
         // Keys to press for configuration.
@@ -176,8 +348,8 @@ namespace {
             } while (LetUserChangeSettings(&tags, &test_log_location, &test_reporter));
 
             // Execute the now configured tests.
-            int test_exit_code = RunTests(tags, test_log_location, test_reporter);
-
+            int test_exit_code = //RunTests(tags, test_log_location, test_reporter);
+                                    0;
             std::cout << "\x1b[2J\x1b[20C" << "Tests finished!" << std::endl 
                 << std::endl
                 << "(\x1b[32m" << kStopApplicationKeyName  << "\x1b[0m) "
@@ -208,9 +380,11 @@ namespace {
         test_exit_file.open(filename);
         test_exit_file << std::to_string(exit_code);
         test_exit_file.close();
-    }
+    } // namespace interactive
 
-} // namespace
+    #endif // CAPTURE_INTERACTIVE
+
+} // namespace capture
 
 int main(int argc, char** argv) 
 {
@@ -218,16 +392,16 @@ int main(int argc, char** argv)
 
     int exit_code = 0x1ff;
 
-    if (IsRunningInteractively()) {
-        exit_code = interactive::RunInteractiveMenu();
+    if (capture::IsRunningInteractively()) {
+        exit_code = capture::interactive::RunInteractiveMenu();
     }
     else {
-        exit_code = RunAutomaticTests();
+        exit_code = capture::RunAutomaticTests();
     }
     
     TearDownTestingEnvironment();
 
-    WriteExitCode(exit_code, kDefaultExitLocation);
+    capture::WriteExitCode(exit_code, capture::kDefaultExitLocation);
 
 
     return exit_code;
