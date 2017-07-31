@@ -32,7 +32,7 @@ namespace capture::config {
         std::string GetTestSpec() const { return _testSpec; }
         void SetTestSpec(std::string testSpec) { _testSpec = testSpec; }
 
-        std::vector<std::string> CreateCatchArgumentVector();
+        std::vector<std::string> CreateCatchArgumentVector() const;
     };
 
     CaptureConfig CreateConfigFromFile(std::string configFileName);

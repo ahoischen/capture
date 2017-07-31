@@ -13,12 +13,12 @@ namespace capture::config {
     const std::string kExitCodeFileKey = "Capture.ExitCodeFile";
     const std::string kTestSpecKey = "Catch.TestSpec";
     const std::string kCatchOptionKey = "Catch.Option";
-    const std::string kCaptureKeysKey = "Catch.Keys";
+    const std::string kCaptureKeysKey = "Capture.Keys";
     const std::string kCatchOptionNameKey = "Name";
     const std::string kCatchOptionValueKey = "Value";
     const std::string kCatchOptionEnabledKey = "Enabled";
 
-    std::vector<std::string> CaptureConfig::CreateCatchArgumentVector() {
+    std::vector<std::string> CaptureConfig::CreateCatchArgumentVector() const {
         std::vector<std::string> args;
         
         args.push_back("catch");

@@ -4,7 +4,11 @@
 #include <string>
 #include <vector>
 
+#include "interactive/Keys.h"
+
 namespace capture::config {
+    class CaptureConfig;
+
     // Represents an option for catch
     class CatchOption {
         // The option's long name without the `--`.
@@ -23,6 +27,9 @@ namespace capture::config {
             catchArgv.push_back("--" + _name);
         }
 
+        virtual void DrawMenuString(const CaptureConfig &config);
+        virtual bool ProcessInputs(interactive::KeyState kDown, CaptureConfig &config);
+        
         CatchOption (std::string name, bool isEnabled) : _name(name), _isEnabled(isEnabled) {}
    };
 }

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "config/CatchOption.h"
+#include "interactive/Keys.h"
 
 namespace capture::config {
     // Represents an option for catch that has a value.
@@ -22,7 +23,10 @@ namespace capture::config {
             catchArgv.push_back(_value);
         }
 
-        CatchValueOption(std::string name, std::string value, bool isEnabled) : _value(value), CatchOption(name, isEnabled) {}
+        void DrawMenuString(const CaptureConfig &config) override;
+        bool ProcessInputs(interactive::KeyState kDown, CaptureConfig &config) override;
+
+        CatchValueOption(std::string name, std::string value, bool isEnabled) : CatchOption(name, isEnabled), _value(value) {}
     };
 }
 
