@@ -35,6 +35,8 @@ SOURCES		:=	source $(sort $(wildcard source/**/))
 DATA		:=	data
 INCLUDES	:=	include Catch/single_include cpptoml/include
 ROMFS		:=	romfs
+UNIQUEID	:=	6c40a6 
+PRODUCTCODE	:=	CTR-P-CPTA
 
 BANNER_IMAGE	:= $(TOPDIR)/assets/banner.png
 BANNER_AUDIO	:= $(TOPDIR)/assets/banner.wav
@@ -159,6 +161,8 @@ clean:
 else
 
 DEPENDS	:=	$(OFILES:.o=.d)
+MAKEROMDEFS	:= -DROMFS=$(TOPDIR)/$(ROMFS) -DTITLE=$(TARGET) -DPRODUCTCODE=$(PRODUCTCODE) -DUNIQUEID=$(UNIQUEID)
+MAKEROMFLAGS :=	-rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr $(MAKEROMDEFS)
 
 #---------------------------------------------------------------------------------
 # main targets
@@ -180,10 +184,10 @@ $(OUTPUT).3dsx	:	$(OUTPUT).elf $(SMDH_TARGET) $(CIA_TARGET) $(CCI_TARGET)
 $(OUTPUT).elf	:	$(OFILES)
 
 $(OUTPUT).cia	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
-	makerom -f cia -o $(OUTPUT).cia -rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr -DAPP_ROMFS=$(TOPDIR)/$(ROMFS)
+	makerom -f cia -o $(OUTPUT).cia $(MAKEROMFLAGS)
 
 $(OUTPUT).cci	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
-	makerom -f cci -o $(OUTPUT).cci -rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr -DAPP_ROMFS=$(TOPDIR)/$(ROMFS)
+	makerom -f cci -o $(OUTPUT).cci $(MAKEROMFLAGS)
 
 $(OUTPUT).bnr	:	$(BANNER_IMAGE) $(BANNER_AUDIO)
 	bannertool makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $(OUTPUT).bnr

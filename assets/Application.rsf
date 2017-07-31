@@ -1,15 +1,15 @@
 BasicInfo:
-  Title                   : CtrApp
-  ProductCode             : CTR-P-CTAP
+  Title                   : $(TITLE)
+  ProductCode             : $(PRODUCTCODE)
   Logo                    : Homebrew # Nintendo / Licensed / Distributed / iQue / iQueForSystem / Homebrew
 
 RomFs:
   # Specifies the root path of the read only file system to include in the ROM.
-  RootPath                : $(APP_ROMFS)
+  RootPath                : $(ROMFS)
 
 TitleInfo:
   Category                : Application
-  UniqueId                : 0xff3ff
+  UniqueId                : $(UNIQUEID)
 
 Option:
   UseOnSD                 : true # true if App is to be installed to SD
