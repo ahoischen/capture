@@ -25,6 +25,8 @@ namespace capture::resources {
             gfxInit(topFormat, bottomFormat, vrambuffers);
         }
 
+        void FlushBuffers() { gfxFlushBuffers(); }
+
         void ConfigScreen(gfxScreen_t scr, bool immediate) { gfxConfigScreen(scr, immediate); }
 
         uint8_t *GetFramebuffer(gfxScreen_t screen, gfx3dSide_t side, uint16_t *width, uint16_t *height) {
