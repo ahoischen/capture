@@ -1,0 +1,34 @@
+# Defines a few utility functions
+
+# Cancels execution if a variable is not set.
+must_exist = $(if $(value $(strip $(1))),,$(error "Please export $1."))
+
+# Acts like ?=, but is immediate
+or_default = $(if $(value $(strip $(1))),$(value $(strip $(1))),$(strip $(2)))
+
+# Returns all files in 1 with extension 2.
+get_files = $(foreach dir,$(1),$(wildcard $(dir)/*.$(2)))
+
+# To transform TEST_NO_CIA into either nothing or TEST_CIA_NAME
+eval_no_target = $(eval $1_$2 := $(if $($(1)_NO_$(2)),,$($(1)_$(2)_NAME)))
+
+gen_3dsx_flags = $(eval $(1)_3DSXFLAGS := $(if $(value $(1)_ROMFS)), --romfs=$(BUILD_ROMFS)) $(if $(value $(1)_NO_SMDH),,--smdh=$(value $(1)_SMDH_NAME))
+
+# Overrides the variable 1 for all prereqs of the phony target for 2.
+define override_value =
+$(eval $$($(2)_TARGET): $(1) = $$($(2)_$(1)))
+endef
+
+define override_values =
+$(foreach var,$(1),$(call override_value,$(var),BUILD));
+$(foreach var,$(1),$(call override_value,$(var),TARGET))
+endef
+
+define read_files_by_extension =
+$(eval $(1)_$(subst .,,$(2)FILES := $(call get_files,$(value $(1)_$(3)),$(2))))
+endef
+
+define read_files_by_extensions =
+$(foreach ext,$(1),$(call read_files_by_extension,BUILD,$(ext),SOURCES));
+$(foreach ext,$(1),$(call read_files_by_extension,TEST,$(ext),SOURCES));
+endef

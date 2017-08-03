@@ -1,0 +1,8 @@
+# This script ensures that the root Makefile was called with all required variables
+include $(MAKEMODULES_DIR)/Utility
+
+$(call must_exist, CAPTURE_INCLUDES)
+$(call must_exist, CAPTURE_SOURCES)
+$(call must_exist, CAPTURE_BUILD)
+$(call must_exist, DEVKITARM)
+$(call must_exist, DEVKITPRO)
