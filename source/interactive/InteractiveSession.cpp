@@ -1,10 +1,10 @@
-#include "interactive/InteractiveSession.h"
+#include "capture/interactive/InteractiveSession.h"
 
 #include <iostream>
 
 #include "3ds.h"
-#include "interactive/ConfigMenu.h"
-#include "RunTests.h"
+#include "capture/interactive/ConfigMenu.h"
+#include "capture/RunTests.h"
 
 namespace capture::interactive {
     int InteractiveSession::Run(config::CaptureConfig& config, resources::GFX *gfx, resources::Console upperConsole) {

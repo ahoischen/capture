@@ -1,8 +1,8 @@
-#include "config/CaptureKeys.h"
+#include "capture/config/CaptureKeys.h"
 
 #include <string>
 
-#include "config/InvalidConfigurationException.h"
+#include "capture/config/InvalidConfigurationException.h"
 
 namespace capture::config {
     const std::string kStartInteractiveKey = "StartInteractive";

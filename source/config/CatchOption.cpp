@@ -1,8 +1,8 @@
-#include "config/CatchOption.h"
+#include "capture/config/CatchOption.h"
 
 #include <cstdio>
 
-#include "config/CaptureConfig.h"
+#include "capture/config/CaptureConfig.h"
 
 namespace capture::config {
     void CatchOption::DrawMenuString(const CaptureConfig &config) {

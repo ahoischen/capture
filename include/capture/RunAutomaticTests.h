@@ -1,7 +1,7 @@
 #ifndef CAPTURE_RUNAUTOMATICTESTS_H
 #define CAPTURE_RUNAUTOMATICTESTS_H
 
-#include "config/CaptureConfig.h"
+#include "capture/config/CaptureConfig.h"
 
 namespace capture {
     // Executes the default tests. Assumes to be on citra, if unable to detect the

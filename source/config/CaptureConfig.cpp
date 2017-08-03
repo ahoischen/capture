@@ -1,4 +1,4 @@
-#include "config/CaptureConfig.h"
+#include "capture/config/CaptureConfig.h"
 
 #include <memory>
 #include <string>
@@ -6,7 +6,7 @@
 
 #include "cpptoml.h"
 
-#include "config/InvalidConfigurationException.h"
+#include "capture/config/InvalidConfigurationException.h"
 
 namespace capture::config {
     // Configuration file key definitions:

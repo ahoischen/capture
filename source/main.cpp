@@ -4,15 +4,15 @@
 
 #include "3ds.h"
 
-#include "config/CaptureConfig.h"
-#include "interactive/InteractiveSession.h"
-#include "interactive/IsRunningInteractively.h"
-#include "resources/Console.h"
-#include "resources/GFX.h"
-#include "resources/RomFS.h"
-#include "RunAutomaticTests.h"
-#include "RunTests.h"
-#include "WriteExitCode.h"
+#include "capture/config/CaptureConfig.h"
+#include "capture/interactive/InteractiveSession.h"
+#include "capture/interactive/IsRunningInteractively.h"
+#include "capture/resources/Console.h"
+#include "capture/resources/GFX.h"
+#include "capture/resources/RomFS.h"
+#include "capture/RunAutomaticTests.h"
+#include "capture/RunTests.h"
+#include "capture/WriteExitCode.h"
 
 const std::string kConfigFilename="romfs:/CaptureConfig.toml";
 

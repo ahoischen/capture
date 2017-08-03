@@ -1,4 +1,4 @@
-#include "RunTests.h"
+#include "capture/RunTests.h"
 
 #include <cstring>
 #include <iostream>

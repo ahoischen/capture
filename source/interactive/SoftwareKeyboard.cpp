@@ -1,4 +1,4 @@
-#include "interactive/SoftwareKeyboard.h"
+#include "capture/interactive/SoftwareKeyboard.h"
 
 #include <cassert>
 #include <cstring>

@@ -1,10 +1,10 @@
 #ifndef CATCH_INTERACTIVE_INTERACTIVESESSION_H
 #define CATCH_INTERACTIVE_INTERACTIVESESSION_H
 
-#include "config/CaptureConfig.h"
-#include "interactive/Keys.h"
-#include "resources/Console.h"
-#include "resources/GFX.h"
+#include "capture/config/CaptureConfig.h"
+#include "capture/interactive/Keys.h"
+#include "capture/resources/Console.h"
+#include "capture/resources/GFX.h"
 
 namespace capture::interactive {
     class InteractiveSession {

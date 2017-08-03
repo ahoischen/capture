@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "config/CaptureKeys.h"
-#include "config/CatchOption.h"
-#include "config/CatchValueOption.h"
+#include "capture/config/CaptureKeys.h"
+#include "capture/config/CatchOption.h"
+#include "capture/config/CatchValueOption.h"
 
 namespace capture::config {
     // Represents the configuration for capture.
