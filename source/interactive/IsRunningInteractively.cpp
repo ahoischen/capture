@@ -1,4 +1,4 @@
-#include "interactive/IsRunningInteractively.h"
+#include "capture/interactive/IsRunningInteractively.h"
 
 #include "3ds.h"
 #include <cstdio>

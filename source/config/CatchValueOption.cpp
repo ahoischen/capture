@@ -1,11 +1,11 @@
-#include "config/CatchValueOption.h"
+#include "capture/config/CatchValueOption.h"
 
 #include <cstdio>
 #include <memory>
 
 #include "3ds.h"
-#include "config/CaptureConfig.h"
-#include "interactive/SoftwareKeyboard.h"
+#include "capture/config/CaptureConfig.h"
+#include "capture/interactive/SoftwareKeyboard.h"
 
 namespace capture::config {
     void CatchValueOption::DrawMenuString(const CaptureConfig &config) {

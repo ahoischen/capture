@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "cpptoml.h"
-#include "interactive/Keys.h"
+#include "capture/interactive/Keys.h"
 
 namespace capture::config {
     class CaptureKeys {

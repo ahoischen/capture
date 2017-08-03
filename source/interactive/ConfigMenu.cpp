@@ -1,4 +1,4 @@
-#include "interactive/ConfigMenu.h"
+#include "capture/interactive/ConfigMenu.h"
 
 #include <algorithm>
 #include <cstdio>

@@ -1,6 +1,6 @@
-#include "RunAutomaticTests.h"
+#include "capture/RunAutomaticTests.h"
 
-#include "RunTests.h"
+#include "capture/RunTests.h"
 
 namespace capture {
     int RunAutomaticTests(const config::CaptureConfig &config) {

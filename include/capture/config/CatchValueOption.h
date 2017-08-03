@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "config/CatchOption.h"
-#include "interactive/Keys.h"
+#include "capture/config/CatchOption.h"
+#include "capture/interactive/Keys.h"
 
 namespace capture::config {
     // Represents an option for catch that has a value.

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "interactive/Keys.h"
+#include "capture/interactive/Keys.h"
 
 namespace capture::config {
     class CaptureConfig;
