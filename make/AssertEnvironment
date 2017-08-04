@@ -1,0 +1,6 @@
+include $(MAKEMODULES_DIR)/Utility
+
+$(call must_exist, DEVKITARM)
+$(call must_exist, DEVKITPRO)
+
+CTRULIB ?= $(DEVKITPRO)/libctru
