@@ -18,130 +18,50 @@ include $(MAKEMODULES_DIR)/AssertEnvironment
 # All these values are defined to be either a possibly exported value or the
 # second parameter.
 #- VARIABLE_NAME ----- IMMEDIATE ?= ----- VARIABLE_NAME ------- VALUE ------------
-MAKEROM				:= $(call or_default, MAKEROM,				makerom)
-BANNERTOOL			:= $(call or_default, BANNERTOOL,			bannertool)
-
+$(call config_option_s,i,	MAKEROM,			makerom)
+$(call config_option_s,i,	BANNERTOOL,			bannertool)
+$(call config_option_s,i,	INTERMEDIATE_DIR,	build)
+$(call config_option_s,i,	OUTPUT_DIR,			output)
+$(call config_option_s,i,	OFILES_DIR,			$(INTERMEDIATE_DIR)/build)
+$(call config_option_s,i,	PATCHED_MAKE_DIR,	$(INTERMEDIATE_DIR)/makefiles)
+$(call config_option_s,i,	DEPSDIR,			$(INTERMEDIATE_DIR)/deps)
+$(call config_option_s,i,	TEST_ROMFS_TEMPDIR,	$(INTERMEDIATE_DIR)/test-romfs)
 #---------------------------------------------------------------------------------
 # REGULAR CONFIGURATION
-#- VARIABLE_NAME ----- IMMEDIATE ?= ----- VARIABLE_NAME ------- VALUE ------------
-BUILD_TARGET		:= $(call or_default, BUILD_TARGET, 		build)
+#----------------------- NAME --- VALUE FOR REGULAR BUILDS ---- VALUE FOR TEST BUILDS
+$(call config_option_t,i,TARGET,	build,						test)
+$(call config_option_t,i,OUTPUT,	$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+$(call config_option_t,i,SOURCES,	$(shell find source -type d -print), $(shell find test -type d -print))
+$(call config_option_t,i,INCLUDES,	include Catch/single_include cpptoml/include, cpptoml/include, Catch/single_include)
+$(call config_option_t,i,DATA,		data,						test-data)
+$(call config_option_t,i,PRODUCTCODE,	CTR-P-CTAP,				CTR-P-CTAP)
+$(call config_option_t,i,ROMFS_DIR,	romfs,						romfs)
+$(call config_option_t,i,UNIQUEID,	6d40a6,						6b40a6)
+$(call config_option_t,i,RSFFILE,	assets/Application.rsf,		assets/Application.rsf)
+$(call config_option_t,i,APP_TITLE,	$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+$(call config_option_t,i,APP_DESCRIPTION,	Built with devkitARM & libctru,	Built with devkitARM & libctru)
+$(call config_option_t,i,APP_AUTHOR,	Unspecified Author,		Unspecified Author)
+$(call config_option_t,i,APP_ICON,	$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
+$(call config_option_t,i,BANNER_IMAGE,	assets/image.png,		assets/image.png)
+$(call config_option_t,i,BANNER_AUDIO,	assets/audio.wav,		assets/audio.wav)
+$(call config_option_t,i,ARCH,			-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft)
+$(call config_option_t,i,CFLAGS,		-g -Wall -O2 -mword-relocations -ffunction-sections $(BUILD_ARCH), \
+										-g -Wall -O2 -mword-relocations -ffunction-sections $(TEST_ARCH))
 
-BUILD_OUTPUT		:= $(call or_default, BUILD_OUTPUT, 		$(notdir $(CURDIR)))
+$(call config_option_t,,CXXFLAGS,		$$(BUILD_CFLAGS) -DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17 \
+										$$(TEST_CFLAGS)	-DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17)
+$(call config_option_t,i,ASFLAGS,		-g $(BUILD_ARCH),		-g $(TEST_ARCH))
+$(call config_option_t,i,LDFLAGS,		-specs=3dsx.specs -g $(BUILD_ARCH) -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map), \
+										-specs=3dsx.specs -g $(TEST_ARCH)  -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map))
+$(call config_option_t,i,LIBS,			-lctru -lm,				)
+$(call config_option_t,i,LIBDIRS,		$(CTRULIB),				)
 
-BUILD_SOURCES		:= $(call or_default, BUILD_SOURCES, 		$(shell find source -type d -print))
 
-BUILD_INCLUDES		:= $(call or_default, BUILD_INCLUDES, 		include \
-																Catch/single_include \
-																cpptoml/include)
-
-BUILD_DATA			:= $(call or_default, BUILD_DATA, 			data)
-
-BUILD_PRODUCTCODE	:= $(call or_default, BUILD_PRODUCTCODE,	CTR-P-CTAP)
-BUILD_ROMFS_DIR		:= $(call or_default, BUILD_ROMFS_DIR,		romfs)
-BUILD_UNIQUEID		:= $(call or_default, BUILD_UNIQUEID, 		6d40a6)
-BUILD_RSFFILE		:= $(call or_default, BUILD_RSFFILE,		assets/Application.rsf)
-
-BUILD_APP_TITLE		:= $(call or_default, BUILD_APP_TITLE,		$(notdir $(CURDIR)))
-BUILD_APP_DESCRIPTION := $(call or_default,BUILD_APP_DESCRIPTION, Built with devkitARM & libctru)
-BUILD_APP_AUTHOR	:= $(call or_default,						Unspecified Author)
-BUILD_APP_ICON		:= $(call or_default, BUILD_APP_ICON,		$(CTRULIB)/default_icon.png)
-
-BUILD_BANNER_IMAGE	:= $(call or_default, BUILD_BANNER_IMAGE,	assets/image.png)
-BUILD_BANNER_AUDIO	:= $(call or_default, BUILD_BANNER_AUDIO,	assets/audio.wav)
-
-BUILD_ARCH			:= $(call or_default, BUILD_ARCH, 			-march=armv6k \
-																-mtune=mpcore \
-																-mfloat-abi=hard \
-																-mtp=soft)
-
-BUILD_CFLAGS		:= $(call or_default, BUILD_CFLAGS,			-g -Wall -O2 -mword-relocations \
-																-ffunction-sections) \
-																$(BUILD_ARCH)
-
-BUILD_CXXFLAGS		?=											$(BUILD_CFLAGS) \
-																-DCATCH_CONFIG_NO_POSIX_SIGNALS \
-																-DCATCH_CONFIG_COLOUR_ANSI \
-																-DCATCH_CONFIG_CONSOLE_WIDTH=50 \
-																-std=gnu++17
-																
-BUILD_ASFLAGS		:= $(call or_default, BUILD_ASFLAGS,		-g $(BUILD_ARCH))
-BUILD_LDFLAGS		?= -specs=3dsx.specs -g $(BUILD_ARCH) -Wl,-Map,$(OUTPUT_DIR)/$(notdir $*.map)
-
-BUILD_LIBS			:= $(call or_default, BUILD_LIBS,			-lctru -lm)
-BUILD_LIBDIRS		:= $(call or_default, BUILD_LIBDIRS,		$(CTRULIB))
-
-# BUILD_NO_3DSX		:= 1
-# BUILD_NO_SMDH		:= 1
-# BUILD_NO_CIA		:= 1
-# BUILD_NO_CCI		:= 1
-
-#---------------------------------------------------------------------------------
-# TEST CONFIGURATION
-# These parameters apply to the TEST_TARGET only.
-# SOURCES, INCLUDES, DATA and ROMFS specify additional directories to be
-# included. ROMFS merges directories in the BUILD directory, overwriting files
-# from the regular builds with those in TEST_ROMFS.
-# PRODUCTCODE and UNIQUEID replace the values for normal builds.
-# *FLAGS gets overwritten. LIBDS and LIBDIRS are appended to their BUILD_
-# counterparts.
-#- VARIABLE_NAME ----- IMMEDIATE ?= ----- VARIABLE_NAME ------- VALUE ------------
-TEST_TARGET			:= $(call or_default, TEST_TARGET, 			test)
-
-TEST_OUTPUT			:= $(call or_default, TEST_OUTPUT,	 		$(notdir $(CURDIR)))_test
-
-TEST_SOURCES		:= $(call or_default, TEST_SOURCES, 		test \
-																$(sort $(wildcard test/**/)))
-
-TEST_INCLUDES		:= $(call or_default, TEST_INCLUDES, 		Catch/single_include \
-																cpptoml/include)
-
-TEST_DATA			:= $(call or_default, TEST_DATA, 			test-data)
-
-TEST_PRODUCTCODE	:= $(call or_default, TEST_PRODUCTCODE, 	CTR-P-CTAP)
-TEST_ROMFS_DIR		:= $(call or_default, TEST_ROMFS_DIR,		romfs)
-TEST_UNIQUEID		:= $(call or_default, TEST_UNIQUEID, 		6b40a6)
-TEST_RSFFILE		:= $(call or_default, TEST_RSFFILE,			assets/Application.rsf)
-
-BUILD_BANNER_IMAGE	:= $(call or_default, BUILD_BANNER_IMAGE,	assets/image.png)
-BUILD_BANNER_AUDIO	:= $(call or_default, BUILD_BANNER_AUDIO,	assets/audio.wav)
-
-TEST_ARCH			:= $(call or_default, TEST_ARCH, 			-march=armv6k \
-																-mtune=mpcore \
-																-mfloat-abi=hard \
-																-mtp=soft)
-
-TEST_CFLAGS			:= $(call or_default, TEST_CFLAGS,			-g -Wall -O2 -mword-relocations \
-																-fomit-frame-pointer -ffunction-sections) \
-																$(TEST_ARCH)
-
-TEST_CXXFLAGS		?=											$(TEST_CFLAGS) \
-																-fno-rtti \
-																-std=gnu++17
-
-TEST_ASFLAGS		:= $(call or_default, TEST_ASFLAGS,			-g $(TEST_ARCH))
-TEST_LDFLAGS		?= -specs=3dsx.specs -g $(TEST_ARCH) -Wl,-Map,$(OUTPUT_DIR)/$(notdir $*.map)
-
-TEST_LIBS			:= $(call or_default, TEST_LIBS,			)
-TEST_LIBDIRS		:= $(call or_default, TEST_LIBDIRS,			)
-
-# TEST_NO_3DSX		:= 1
-# TEST_NO_SMDH		:= 1
-# TEST_NO_CIA		:= 1
-# TEST_NO_CCI		:= 1
-
-#- VARIABLE_NAME ----- IMMEDIATE ?= ----- VARIABLE_NAME ------- VALUE ------------
-INTERMEDIATE_DIR	:= $(call or_default, INTERMEDIATE_DIR,		build)
-OUTPUT_DIR			:= $(call or_default, OUTPUT_DIR,			output)
-OFILES_DIR			:= $(call or_default, OFILES_DIR,			$(INTERMEDIATE_DIR)/build)
-PATCHED_MAKE_DIR	:= $(call or_default, PATCHED_MAKE_DIR,		$(INTERMEDIATE_DIR)/makefiles)
-_3DS_RULES			:= $(call or_default, _3DS_RULES,			$(PATCHED_MAKE_DIR)/3ds-rules)
-BASE_RULES			:= $(call or_default, BASE_RULES,			$(PATCHED_MAKE_DIR)/base-rules)
-DEPSDIR				:= $(call or_default, DEPSDIR,				$(INTERMEDIATE_DIR)/deps)
-TEST_ROMFS_TEMPDIR	:= $(call or_default, TEST_ROMFS_TEMPDIR,	$(INTERMEDIATE_DIR)/test-romfs)
-DUMMY_APP_ICON		:= $(call or_default, DUMMY_APP_ICON,		$(INTERMEDIATE_DIR)/dummy-app-icon)
-#---------------------------------------------------------------------------------
 
 .DEFAULT_GOAL 		:= all
+
+_3DS_RULES			:= $(PATCHED_MAKE_DIR)/3ds-rules
+BASE_RULES			:= $(PATCHED_MAKE_DIR)/base-rules
 include $(BASE_RULES)
 include $(_3DS_RULES)
 
@@ -196,6 +116,9 @@ create_filelists = \
 
 $(call create_filelists,BUILD)
 $(call create_filelists,TEST)
+
+$(info $(BUILD_INCLUDE))
+$(info $(BUILD_INCLUDES))
 
 #---------------------------------------------------------------------------------
 # MERGING BUILD AND TEST VARS
@@ -306,6 +229,7 @@ $(BUILD_OUTPUT).elf: $(BUILD_OFILES)
 $(TEST_OUTPUT).elf: $(TEST_OFILES)
 
 # Nullifies the APP_ICON prerequisite of %.smdh
+DUMMY_APP_ICON := $(INTERMEDIATE_DIR)/dummy-app-icon
 APP_ICON = $(DUMMY_APP_ICON)
 $(APP_ICON):
 	touch $@

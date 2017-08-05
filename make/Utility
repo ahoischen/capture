@@ -32,3 +32,19 @@ define read_files_by_extensions =
 $(foreach ext,$(1),$(call read_files_by_extension,BUILD,$(ext),SOURCES));
 $(foreach ext,$(1),$(call read_files_by_extension,TEST,$(ext),SOURCES));
 endef
+
+define config_option_t =
+$(if $(findstring i,$1),$(eval BUILD_$2 := $(call or_default,BUILD_$2,$3)),$(eval BUILD_$2 ?= $3));
+$(if $(findstring i,$1),$(eval TEST_$2 := $(call or_default,TEST_$2,$4)$(if $(findstring a,$1), $(value BUILD_$2),))),$(eval TEST_$2 ?= $(if $(findstring a,$1),$(value BUILD_$2),));
+$(if $(findstring e,$1),$(eval VARS_TO_OVERRIDE += $2),)
+endef
+
+define config_option_s =
+$(if $(findstring i,$1),$(eval $2 := $(call or_default,$2,$3)),$(eval $2 ?= $3))
+endef
+
+, := ,
+__SPACE :=
+__SPACE +=
+$(__SPACE) :=
+$(__SPACE) +=
