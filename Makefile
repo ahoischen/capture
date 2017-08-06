@@ -35,7 +35,7 @@ $(call config_option_s,i,	TEST_ROMFS_TEMPDIR,	$(INTERMEDIATE_DIR)/test-romfs)
 $(call config_option_t,i,	TARGET,			build,						test)
 
 # name and place to outptu binaries to. File extensions are appended automatically.
-$(call config_option_t,i,	OUTPUT,			$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+$(call config_option_t,ie,	OUTPUT,			$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
 
 # Directories for various files.
 $(call config_option_t,i,	SOURCES,		$(shell find source -type d -print), $(shell find test -type d -print))
@@ -45,30 +45,30 @@ $(call config_option_t,i,	ROMFS_DIR,		romfs,						romfs)
 
 # Settings for cia and cci. If the given rsf doesn't take command line options PRODUCTCODE and UniqeID
 # can be ignored.
-$(call config_option_t,i,	PRODUCTCODE,	CTR-P-CTAP,				CTR-P-CTAP)
-$(call config_option_t,i,	UNIQUEID,		6d40a6,						6b40a6)
-$(call config_option_t,i,	RSFFILE,		assets/Application.rsf,		assets/Application.rsf)
-$(call config_option_t,i,	BANNER_IMAGE,	assets/image.png,		assets/image.png)
-$(call config_option_t,i,	BANNER_AUDIO,	assets/audio.wav,		assets/audio.wav)
+$(call config_option_t,ie,	PRODUCTCODE,	CTR-P-CTAP,				CTR-P-CTAP)
+$(call config_option_t,ie,	UNIQUEID,		6d40a6,						6b40a6)
+$(call config_option_t,ie,	RSFFILE,		assets/Application.rsf,		assets/Application.rsf)
+$(call config_option_t,ie,	BANNER_IMAGE,	assets/image.png,		assets/image.png)
+$(call config_option_t,ie,	BANNER_AUDIO,	assets/audio.wav,		assets/audio.wav)
 
 # Settings for 3dsx files. Unlike in the example Makefile, these values don't default if left
 # empty.
-$(call config_option_t,i,	APP_TITLE,		$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
-$(call config_option_t,i,	APP_DESCRIPTION,Built with devkitARM & libctru,	Built with devkitARM & libctru)
-$(call config_option_t,i,	APP_AUTHOR,		Unspecified Author,		Unspecified Author)
-$(call config_option_t,i,	APP_ICON,		$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
+$(call config_option_t,ie,	APP_TITLE,		$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+$(call config_option_t,ie,	APP_DESCRIPTION,Built with devkitARM & libctru,	Built with devkitARM & libctru)
+$(call config_option_t,ie,	APP_AUTHOR,		Unspecified Author,		Unspecified Author)
+$(call config_option_t,ie,	APP_ICON,		$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
 
 # Compiler flags. Be sure to escape variable references in CXXFLAGS.
-$(call config_option_t,i,	ARCH,			-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft)
-$(call config_option_t,i,	CFLAGS,			-g -Wall -O2 -mword-relocations -ffunction-sections $(BUILD_ARCH), \
+$(call config_option_t,ie,	ARCH,			-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft)
+$(call config_option_t,ie,	CFLAGS,			-g -Wall -O2 -mword-relocations -ffunction-sections $(BUILD_ARCH), \
 											-g -Wall -O2 -mword-relocations -ffunction-sections $(TEST_ARCH))
 
-$(call config_option_t,,	CXXFLAGS,		$$(BUILD_CFLAGS) -DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17 \
+$(call config_option_t, e,	CXXFLAGS,		$$(BUILD_CFLAGS) -DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17 \
 											$$(TEST_CFLAGS)	-DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17)
-$(call config_option_t,i,	ASFLAGS,		-g $(BUILD_ARCH),		-g $(TEST_ARCH))
-$(call config_option_t,i,	LDFLAGS,		-specs=3dsx.specs -g $(BUILD_ARCH) -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map), \
+$(call config_option_t,ie,	ASFLAGS,		-g $(BUILD_ARCH),		-g $(TEST_ARCH))
+$(call config_option_t,ie,	LDFLAGS,		-specs=3dsx.specs -g $(BUILD_ARCH) -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map), \
 											-specs=3dsx.specs -g $(TEST_ARCH)  -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map))
-$(call config_option_t,i,	LIBS,			-lctru -lm,				)
+$(call config_option_t,ie,	LIBS,			-lctru -lm,				)
 $(call config_option_t,i,	LIBDIRS,		$(CTRULIB),				)
 
 #---------------------------------------------------------------------------------
@@ -106,6 +106,8 @@ $(call eval_no_target,TEST,CCI)
 $(call gen_3dsxflags,BUILD)
 $(call gen_3dsxflags,TEST)
 
+VARS_TO_OVERRIDE += _3DSXFLAGS
+
 ####################################
 # TODO: HFILES IS NOT YET BEING GENERATED CORRECTLY
 #	HFILES is currently in the same directory as its sources.
@@ -131,9 +133,7 @@ create_filelists = \
 
 $(call create_filelists,BUILD)
 $(call create_filelists,TEST)
-
-$(info $(BUILD_INCLUDE))
-$(info $(BUILD_INCLUDES))
+VARS_TO_OVERRIDE 				+= OFILES LIBPATHS
 
 #---------------------------------------------------------------------------------
 # MERGING BUILD AND TEST VARS
@@ -207,6 +207,8 @@ $(TEST_ROMFS_TEMPDIR): $(BUILD_ROMFS_DIR) $(TEST_ROMFS_DIR)
 	 cp -r $(TEST_ROMFS_DIR)/* $(TEST_ROMFS_DIR)/.[^.]* $@ && \
 	 echo Rebuilt test-romfs.
 
+VARS_TO_OVERRIDE += ROMFS
+
 #---------------------------------------------------------------------------------
 # DEPENDENCY INJECTION
 # Target-Specific variables are also in effect for all prerequisites of the specified
@@ -215,29 +217,8 @@ $(TEST_ROMFS_TEMPDIR): $(BUILD_ROMFS_DIR) $(TEST_ROMFS_DIR)
 
 BUILD_LD				= $(if $(BUILD_CPPFILES),$(CXX),$(CC))
 TEST_LD					= $(if $(TEST_CPPFILES),$(CXX),$(CC))
+VARS_TO_OVERRIDE		+= LD
 
-VARS_TO_OVERRIDE := \
-	OUTPUT \
-	PRODUCTCODE \
-	ROMFS \
-	UNIQUEID \
-	APP_TITLE \
-	APP_DESCRIPTION \
-	APP_AUTHOR \
-	APP_ICON \
-	RSFFILE \
-	BANNER_AUDIO \
-	BANNER_IMAGE \
-	ARCH \
-	CFLAGS \
-	CXXFLAGS \
-	ASFLAGS \
-	LDFLAGS \
-	LIBS \
-	LIBPATHS \
-	_3DSXFLAGS \
-	OFILES \
-	LD
 $(call override_values,$(VARS_TO_OVERRIDE))
 
 $(BUILD_OUTPUT).elf: $(BUILD_OFILES)
