@@ -1,199 +1,263 @@
 #---------------------------------------------------------------------------------
-.SUFFIXES:
+# The configuration is a little bit further down; a few functions have to be imported
+# first.
 #---------------------------------------------------------------------------------
+MAKEMODULES_DIR	:= make
 
-ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
-endif
+# Utility functions.
+include $(MAKEMODULES_DIR)/Utility
 
-TOPDIR ?= $(CURDIR)
-include $(DEVKITARM)/3ds_rules
+# Asserts the existence of crucial variables such as DEVKITARM.
+include $(MAKEMODULES_DIR)/AssertEnvironment
 
-#---------------------------------------------------------------------------------
-# TARGET is the name of the output
-# BUILD is the directory where object files & intermediate files will be placed
-# SOURCES is a list of directories containing source code
-# DATA is a list of directories containing data files
-# INCLUDES is a list of directories containing header files
-#
-# NO_SMDH: if set to anything, no SMDH file is generated.
-# NO_CIA
-# NO_CCI
-# ROMFS is the directory which contains the RomFS, relative to the Makefile (Optional)
-# APP_TITLE is the name of the app stored in the SMDH file (Optional)
-# APP_DESCRIPTION is the description of the app stored in the SMDH file (Optional)
-# APP_AUTHOR is the author of the app stored in the SMDH file (Optional)
-# ICON is the filename of the icon (.png), relative to the project folder.
-#   If not set, it attempts to use one of the following (in this order):
-#     - <Project name>.png
-#     - icon.png
-#     - <libctru folder>/default_icon.png
-#---------------------------------------------------------------------------------
-TARGET		:=	capture
-BUILD		:=	build
-SOURCES		:=	source $(sort $(wildcard source/**/)) 
-DATA		:=	data
-INCLUDES	:=	include Catch/single_include cpptoml/include
-ROMFS		:=	romfs
-UNIQUEID	:=	6c40a6 
-PRODUCTCODE	:=	CTR-P-CPTA
-
-BANNER_IMAGE	:= $(TOPDIR)/assets/banner.png
-BANNER_AUDIO	:= $(TOPDIR)/assets/banner.wav
-RSF_FILE	:= $(TOPDIR)/assets/Application.rsf
+# Asserts that this makefile is being passed all required variables.
+#include $(MAKEMODULES_DIR)/AssertParameters
 
 #---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
-ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
+# GENERAL CONFIGURATION
+#	Configures directories and tools for the build.
+#--------------------------- NAME -------------- VALUE ---------------------------
+# Makerom and bannertool are the commands to launch those tools. 
+$(call config_option_s,i,	MAKEROM,			makerom)
+$(call config_option_s,i,	BANNERTOOL,			bannertool)
 
-CFLAGS	:=	-g -Wall -O2 -mword-relocations \
-			-fomit-frame-pointer -ffunction-sections \
-			$(ARCH)
-
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
-
-CXXFLAGS	:= $(CFLAGS) -std=gnu++17 \
-  	-DCATCH_CONFIG_NO_POSIX_SIGNALS \
-	-DCATCH_CONFIG_COLOUR_ANSI \
-	-DCATCH_CONFIG_CONSOLE_WIDTH=50
-
-ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
-
-LIBS	:= -lctru -lm
+$(call config_option_s,i,	OUTPUT_DIR,			output)
+$(call config_option_s,i,	INTERMEDIATE_DIR,	build)
+$(call config_option_s,i,	OFILES_DIR,			$(INTERMEDIATE_DIR)/build)
+$(call config_option_s,i,	PATCHED_MAKE_DIR,	$(INTERMEDIATE_DIR)/makefiles)
+$(call config_option_s,i,	DEPSDIR,			$(INTERMEDIATE_DIR)/deps)
+$(call config_option_s,i,	TEST_ROMFS_TEMPDIR,	$(INTERMEDIATE_DIR)/test-romfs)
 
 #---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
-#---------------------------------------------------------------------------------
-LIBDIRS	:= $(CTRULIB)
+# REGULAR CONFIGURATION
+#-------------------------- NAME ---------- VALUE FOR REGULAR BUILDS -- VALUE FOR TEST BUILDS
+# The command to build the regular and test targets.
+$(call config_option_t,i,	TARGET,			build,						test)
 
+# name and place to outptu binaries to. File extensions are appended automatically.
+$(call config_option_t,ie,	OUTPUT,			$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
 
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
+# Directories for various files.
+$(call config_option_t,i,	SOURCES,		$(shell find source -type d -print), $(shell find test -type d -print))
+$(call config_option_t,i,	INCLUDES,		include Catch/single_include cpptoml/include, cpptoml/include, Catch/single_include)
+$(call config_option_t,i,	DATA,			data,						test-data)
+$(call config_option_t,i,	ROMFS_DIR,		romfs,						romfs)
 
-export OUTPUT	:=	$(CURDIR)/$(TARGET)
-export TOPDIR	:=	$(CURDIR)
+# Settings for cia and cci. If the given rsf doesn't take command line options PRODUCTCODE and UniqeID
+# can be ignored.
+$(call config_option_t,ie,	PRODUCTCODE,	CTR-P-CTAP,				CTR-P-CTAP)
+$(call config_option_t,ie,	UNIQUEID,		6d40a6,						6b40a6)
+$(call config_option_t,ie,	RSFFILE,		assets/Application.rsf,		assets/Application.rsf)
+$(call config_option_t,ie,	BANNER_IMAGE,	assets/image.png,		assets/image.png)
+$(call config_option_t,ie,	BANNER_AUDIO,	assets/audio.wav,		assets/audio.wav)
 
-export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+# Settings for 3dsx files. Unlike in the example Makefile, these values don't default if left
+# empty.
+$(call config_option_t,ie,	APP_TITLE,		$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+$(call config_option_t,ie,	APP_DESCRIPTION,Built with devkitARM & libctru,	Built with devkitARM & libctru)
+$(call config_option_t,ie,	APP_AUTHOR,		Unspecified Author,		Unspecified Author)
+$(call config_option_t,ie,	APP_ICON,		$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
 
-export DEPSDIR	:=	$(CURDIR)/$(BUILD)
+# Compiler flags. Be sure to escape variable references in CXXFLAGS.
+$(call config_option_t,ie,	ARCH,			-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft)
+$(call config_option_t,ie,	CFLAGS,			-g -Wall -O2 -mword-relocations -ffunction-sections $(BUILD_ARCH), \
+											-g -Wall -O2 -mword-relocations -ffunction-sections $(TEST_ARCH))
 
-CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-PICAFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.v.pica)))
-SHLISTFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.shlist)))
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-#---------------------------------------------------------------------------------
-# use CXX for linking C++ projects, CC for standard C
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(CPPFILES)),)
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CC)
-#---------------------------------------------------------------------------------
-else
-#---------------------------------------------------------------------------------
-	export LD	:=	$(CXX)
-#---------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------
-
-export OFILES_SOURCES 	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
-
-export OFILES_BIN	:=	$(addsuffix .o,$(BINFILES)) \
-			$(PICAFILES:.v.pica=.shbin.o) $(SHLISTFILES:.shlist=.shbin.o)
-
-export OFILES := $(OFILES_BIN) $(OFILES_SOURCES)
-
-export HFILES	:=	$(PICAFILES:.v.pica=_shbin.h) $(SHLISTFILES:.shlist=_shbin.h) $(addsuffix .h,$(subst .,_,$(BINFILES)))
-
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-			-I$(CURDIR)/$(BUILD)
-
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
-
-ifeq ($(strip $(ICON)),)
-	icons := $(wildcard *.png)
-	ifneq (,$(findstring $(TARGET).png,$(icons)))
-		export APP_ICON := $(TOPDIR)/$(TARGET).png
-	else
-		ifneq (,$(findstring icon.png,$(icons)))
-			export APP_ICON := $(TOPDIR)/icon.png
-		endif
-	endif
-else
-	export APP_ICON := $(TOPDIR)/$(ICON)
-endif
-
-ifeq ($(strip $(NO_SMDH)),)
-	export _3DSXFLAGS += --smdh=$(CURDIR)/$(TARGET).smdh
-endif
-
-ifneq ($(ROMFS),)
-	export _3DSXFLAGS += --romfs=$(CURDIR)/$(ROMFS)
-endif
-
-.PHONY: $(BUILD) clean all
+$(call config_option_t, e,	CXXFLAGS,		$$(BUILD_CFLAGS) -DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17 \
+											$$(TEST_CFLAGS)	-DCATCH_CONFIG_NO_POSIX_SIGNALS -DCATCH_CONFIG_COLOUR_ANSI -DCATCH_CONFIG_CONSOLE_WIDTH=50 -std=gnu++17)
+$(call config_option_t,ie,	ASFLAGS,		-g $(BUILD_ARCH),		-g $(TEST_ARCH))
+$(call config_option_t,ie,	LDFLAGS,		-specs=3dsx.specs -g $(BUILD_ARCH) -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map), \
+											-specs=3dsx.specs -g $(TEST_ARCH)  -Wl$(,)-Map$(,)$(OUTPUT_DIR)/$(notdir $*.map))
+$(call config_option_t,ie,	LIBS,			-lctru -lm,				)
+$(call config_option_t,i,	LIBDIRS,		$(CTRULIB),				)
 
 #---------------------------------------------------------------------------------
-all: $(BUILD)
 
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+.DEFAULT_GOAL 		:= all
+
+_3DS_RULES			:= $(PATCHED_MAKE_DIR)/3ds-rules
+BASE_RULES			:= $(PATCHED_MAKE_DIR)/base-rules
+include $(BASE_RULES)
+include $(_3DS_RULES)
+
+
+BUILD_3DSX_NAME 	:= $(BUILD_OUTPUT).3dsx
+BUILD_SMDH_NAME		:= $(BUILD_OUTPUT).smdh
+BUILD_CIA_NAME		:= $(BUILD_OUTPUT).cia
+BUILD_CCI_NAME		:= $(BUILD_OUTPUT).cci
+
+TEST_3DSX_NAME		:= $(TEST_OUTPUT).3dsx
+TEST_SMDH_NAME		:= $(TEST_OUTPUT).smdh
+TEST_CIA_NAME		:= $(TEST_OUTPUT).cia
+TEST_CCI_NAME		:= $(TEST_OUTPUT).cci
+
+# Eval_no_target creates the variale $1_$2 and assigns it $1_$2_NAME if $1_NO_$2 is empty.
+# The first call would be equivalent to:
+# BUILD_3DSX := $(if $(BUILD_NO_3DSX),,$(BUILD_3DSX_NAME))
+$(call eval_no_target,BUILD,3DSX)
+$(call eval_no_target,BUILD,SMDH)
+$(call eval_no_target,BUILD,CIA)
+$(call eval_no_target,BUILD,CCI)
+$(call eval_no_target,TEST,3DSX)
+$(call eval_no_target,TEST,SMDH)
+$(call eval_no_target,TEST,CIA)
+$(call eval_no_target,TEST,CCI) 
+
+$(call gen_3dsxflags,BUILD)
+$(call gen_3dsxflags,TEST)
+
+VARS_TO_OVERRIDE += _3DSXFLAGS
+
+####################################
+# TODO: HFILES IS NOT YET BEING GENERATED CORRECTLY
+#	HFILES is currently in the same directory as its sources.
+#	To change this I'd need to understand what the rule for
+#	this filetype does.
+####################################
+create_filelists = \
+	$(eval $(1)_CFILES			:= $(call get_files, $(value $(1)_SOURCES),c)) \
+	$(eval $(1)_CPPFILES		:= $(call get_files, $(value $(1)_SOURCES),cpp)) \
+	$(eval $(1)_SFILES			:= $(call get_files, $(value $(1)_SOURCES),s)) \
+	$(eval $(1)_PICAFILES		:= $(call get_files, $(value $(1)_SOURCES),v.pica)) \
+	$(eval $(1)_SHLISTFILES		:= $(call get_files, $(value $(1)_SOURCES),shlist)) \
+	$(eval $(1)_BINFILES		:= $(call get_files, $(value $(1)_DATA),*)) \
+	\
+	$(eval $(1)_OFILES_SOURCES	:= $(foreach file,$($1_CPPFILES:.cpp=.o) $($1_CFILES:.c=.o) $($1_SFILES:.s=.o),$(OFILES_DIR)/$(file))) \
+	$(eval $(1)_OFILES_BIN		:= $(foreach file,$(addsuffix .o,$($(1)_BINFILES)) $($1_PICAFILES:.v.pica=.shbin.o) $($1_SHLISTFILES:.shlist=.shbin.o),$(OFILES_DIR)/$(file))) \
+	$(eval $(1)_OFILES 			:= $($1_OFILES_BIN) $($1_OFILES_SOURCES)) \
+	$(eval $(1)_HFILES			:= $($1_PICAFILES:.v.pica=_shbin.h) $($1_SHLISTFILES:.shlist=_shbin.h) $(addsuffix .h,$(subst .,_,$($1_BINFILES)))) \
+	$(eval $(1)_INCLUDE			:= $(foreach dir,$($1_INCLUDES),-I$(dir)) \
+		$(foreach dir,$($1_LIBDIRS),-I$(dir)/include) -I$($1_BUILD)) \
+	$(eval $(1)_LIBPATHS		:= $(foreach dir,$($(1)_LIBDIRS),-L$(dir)/lib))
+
+
+$(call create_filelists,BUILD)
+$(call create_filelists,TEST)
+VARS_TO_OVERRIDE 				+= OFILES LIBPATHS
 
 #---------------------------------------------------------------------------------
+# MERGING BUILD AND TEST VARS
+# Some variables for TEST are supposed to include their BUILD counterparts.
+# I didn't figure out a way to keep the TEST_OFILES line DRY...
+#---------------------------------------------------------------------------------
+TEST_OFILES_SOURCES				+= $(filter-out %/main.o,$(BUILD_OFILES_SOURCES))
+TEST_OFILES_BIN					+= $(BUILD_OFILES_BIN)
+TEST_OFILES						:= $(TEST_OFILES_BIN) $(TEST_OFILES_SOURCES)
+TEST_HFILES						+= $(BUILD_OFILES)
+TEST_INCLUDE					+= $(BUILD_INCLUDE)
+TEST_LIBPATHS					+= $(BUILD_LIBPATHS)
+
+#---------------------------------------------------------------------------------
+# Finalizing CFLAGS
+#---------------------------------------------------------------------------------
+
+BUILD_CFLAGS					+= $(BUILD_INCLUDE) -DARM11 -D_3DS 
+TEST_CFLAGS 					+= $(TEST_INCLUDE) -DARM11 -D_3DS
+
+#---------------------------------------------------------------------------------
+# CREATE REQUIRED DIRECTORIES
+#---------------------------------------------------------------------------------
+REQUIRED_DIRS := $(sort \
+$(dir $(BUILD_OUTPUT)) \
+$(dir $(TEST_OUTPUT)) \
+$(dir $(BUILD_OFILES)) \
+$(dir $(TEST_OFILES)) \
+$(INTERMEDIATE_DIR) \
+$(OUTPUT_DIR) \
+$(PATCHED_MAKE_DIR) \
+$(dir $(_3DS_RULES)) \
+$(dir $(BASE_RULES)) \
+$(subst $(OFILES_DIR),$(DEPSDIR),$(sort $(dir $(BUILD_OFILES) $(TEST_OFILES)))) \
+$(dir $(DUMMY_APP_ICON)))
+
+_MKDIRS := $(shell mkdir -p $(REQUIRED_DIRS))
+#---------------------------------------------------------------------------------
+# TARGETS
+#---------------------------------------------------------------------------------
+
+.PHONY: $(BUILD_TARGET) $(TEST_TARGET) all clean
+
+all: $(BUILD_TARGET) $(TEST_TARGET)
+
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(OUTPUT).cia $(OUTPUT).cci $(OUTPUT).bnr
+	@$(RM) -r $(INTERMEDIATE_DIR)
+	@$(RM) -r $(OUTPUT_DIR)
 
-
-#---------------------------------------------------------------------------------
-else
-
-DEPENDS	:=	$(OFILES:.o=.d)
-MAKEROMDEFS	:= -DROMFS=$(TOPDIR)/$(ROMFS) -DTITLE=$(TARGET) -DPRODUCTCODE=$(PRODUCTCODE) -DUNIQUEID=$(UNIQUEID)
-MAKEROMFLAGS :=	-rsf $(RSF_FILE) -elf $(OUTPUT).elf -banner $(OUTPUT).bnr $(MAKEROMDEFS)
+$(BUILD_TARGET): $(BUILD_3DSX) $(BUILD_SMDH) $(BUILD_CIA) $(BUILD_CCI)
+$(TEST_TARGET): $(TEST_3DSX) $(TEST_SMDH) $(TEST_CIA) $(TEST_CCI)
 
 #---------------------------------------------------------------------------------
-# main targets
+# ROMFS GENERATION
+# TEST_ROMFS is just build_romfs dir if they match and a temporary location
+# otherwise.
+# Both romfs depend on all their contents, so a target must be rebuilt if their
+# romfs changes.
+# TEST_ROMFS_TEMPDIR is buit by layering TEST_ROMFS_DIR on top of BUILD_ROMFS_DIR.
 #---------------------------------------------------------------------------------
-ifeq ($(strip $(NO_SMDH)),)
-SMDH_TARGET := $(OUTPUT).smdh
-endif
 
-ifeq ($(strip $(NO_CIA)),)
-CIA_TARGET := $(OUTPUT).cia
-endif
+BUILD_ROMFS := $(BUILD_ROMFS_DIR)
+TEST_ROMFS := $(if $(filter $(BUILD_ROMFS_DIR),$(TEST_ROMFS_DIR)),$(BUILD_ROMFS_DIR),$(TEST_ROMFS_TEMPDIR))
 
-ifeq ($(strip $(NO_CCI)),)
-CCI_TARGET := $(OUTPUT).cci
-endif
+$(BUILD_ROMFS_DIR): $(wildcard $(BUILD_ROMFS)/**/)
+$(TEST_ROMFS_DIR): $(wildcard $(TEST_ROMFS)/**/)
+$(TEST_ROMFS_TEMPDIR): $(BUILD_ROMFS_DIR) $(TEST_ROMFS_DIR)
+	@shopt -s nullglob && \
+	 mkdir -p $(sort $(dir $^))
+	 cp -r $(BUILD_ROMFS_DIR)/* $(BUILD_ROMFS_DIR)/.[^.]* $@ && \
+	 cp -r $(TEST_ROMFS_DIR)/* $(TEST_ROMFS_DIR)/.[^.]* $@ && \
+	 echo Rebuilt test-romfs.
 
-$(OUTPUT).3dsx	:	$(OUTPUT).elf $(SMDH_TARGET) $(CIA_TARGET) $(CCI_TARGET)
+VARS_TO_OVERRIDE += ROMFS
 
-$(OUTPUT).elf	:	$(OFILES)
+#---------------------------------------------------------------------------------
+# DEPENDENCY INJECTION
+# Target-Specific variables are also in effect for all prerequisites of the specified
+# target. This means they are inherited and can thus be set on the phony target.
+#---------------------------------------------------------------------------------
 
-$(OUTPUT).cia	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
-	makerom -f cia -o $(OUTPUT).cia $(MAKEROMFLAGS)
+BUILD_LD				= $(if $(BUILD_CPPFILES),$(CXX),$(CC))
+TEST_LD					= $(if $(TEST_CPPFILES),$(CXX),$(CC))
+VARS_TO_OVERRIDE		+= LD
 
-$(OUTPUT).cci	:	$(OUTPUT).bnr $(OUTPUT).elf $(RSF_FILE)
-	makerom -f cci -o $(OUTPUT).cci $(MAKEROMFLAGS)
+$(call override_values,$(VARS_TO_OVERRIDE))
 
-$(OUTPUT).bnr	:	$(BANNER_IMAGE) $(BANNER_AUDIO)
-	bannertool makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $(OUTPUT).bnr
+$(BUILD_OUTPUT).elf: $(BUILD_OFILES)
+$(TEST_OUTPUT).elf: $(TEST_OFILES)
 
-$(OFILES_SOURCES) : $(HFILES)
+# Nullifies the APP_ICON prerequisite of %.smdh
+DUMMY_APP_ICON := $(INTERMEDIATE_DIR)/dummy-app-icon
+APP_ICON = $(DUMMY_APP_ICON)
+$(APP_ICON):
+	touch $@
 
+#---------------------------------------------------------------------------------
+# CIA AND CCI GENERATION
+# Builds cia and cci files using makerom and bannertool.
+#---------------------------------------------------------------------------------
+MAKEROMFLAGS = -rsf $(RFS_FILE) -elf $*.elf -DROMFS=$(ROMFS) -DTITLE=$(TITLE) \
+	-DPRODUCTCODE=$(PRODUCTCODE) -DUNIQUEID=$(UNIQUEID)
+
+%.cia: %.bnr %.elf
+	@$(MAKEROM) -f cia -o $@ $(MAKEROMFLAGS)
+
+%.cci: %.bnr %.elf
+	@$(MAKEROM) -f cci -o $@ $(MAKEROMFLAGS)
+
+%.bnr:
+	@$(BANNERTOOL) makebanner -i $(BANNER_IMAGE) -a $(BANNER_AUDIO) -o $@
+
+#---------------------------------------------------------------------------------
+# MAKEFILE PATCHING
+# See https://github.com/ahoischen/capture/issues/19 for a needlessly long writeup
+# of the reasons behind patching base_rules. In short: I don't like where it puts
+# stuff. The reason why I'm patching 3ds_rules is that it also includes base_rules.
+#---------------------------------------------------------------------------------
+
+$(BASE_RULES): $(DEVKITARM)/base_rules | $(dir $(BASE_RULES))
+	@sed 's|^%|$(OFILES_DIR)/%|g' $< > $@
+
+$(_3DS_RULES): $(DEVKITARM)/3ds_rules | $(dir $(_3DS_RULES))
+	@sed '/include/d' $< > $@
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
@@ -228,10 +292,3 @@ endef
 %.shbin.o %_shbin.h : %.shlist
 	@echo $(notdir $<)
 	@$(call shader-as,$(foreach file,$(shell cat $<),$(dir $<)$(file)))
-
-
--include $(DEPENDS)
-
-#---------------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------------
