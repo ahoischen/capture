@@ -1,5 +1,12 @@
 # Defines a few utility functions
 
+# Assigns "," to $(,) and " " to $( )
+, := ,
+__SPACE :=
+__SPACE +=
+$(__SPACE) :=
+$(__SPACE) +=
+
 # Cancels execution if a variable is not set.
 must_exist = $(if $(value $(strip $(1))),,$(error "Please export $1."))
 
@@ -33,18 +40,49 @@ $(foreach ext,$(1),$(call read_files_by_extension,BUILD,$(ext),SOURCES));
 $(foreach ext,$(1),$(call read_files_by_extension,TEST,$(ext),SOURCES));
 endef
 
+#---------------------------------------------------------------------------------
+#			config_option_t
+# Summary:
+#	Defines a configuration option for BUILD and TEST targets.
+#
+# Parameters:
+#	$1:	A list of flags to control processing of the options
+#	$2:	The name of the variables to be assigned
+#	$3:	The value for BUILD targets
+#	$4:	The value for TEST targets
+#
+# Description:
+#	This function creates the variables BUILD_$2 and TEST_$2 and assigns them
+#	their respective counterparts if they have not yet been set.
+#	The assignment is immediate if the `i` flag is given, otherwise it is
+#	deferred. Deferred assignments need to escape variable references.
+#	If the flag `e` is given the variable is added to `VARS_TO_OVERRIDE` which
+#	can then be used to inject variables into prerequisites for the specified
+#	target.
+#	If the flag `a` is given the value of BUILD_ is appended to TEST_.
+#---------------------------------------------------------------------------------
 define config_option_t =
 $(if $(findstring i,$1),$(eval BUILD_$2 := $(call or_default,BUILD_$2,$3)),$(eval BUILD_$2 ?= $3));
 $(if $(findstring i,$1),$(eval TEST_$2 := $(call or_default,TEST_$2,$4)$(if $(findstring a,$1), $(value BUILD_$2),))),$(eval TEST_$2 ?= $(if $(findstring a,$1),$(value BUILD_$2),));
 $(if $(findstring e,$1),$(eval VARS_TO_OVERRIDE += $2),)
 endef
 
+#---------------------------------------------------------------------------------
+#			config_option_s
+# Summary:
+#	Defines a configuration option, that is the same for all targets.
+#
+# Parameters:
+#	$1:	A list of flags to control processing of the options.
+#	$2:	The variable's name
+#	$3:	The value
+#
+# Description:
+#	This function creates the variable $2 and assigns it $3 if it has not been
+#	set.
+#	The assignment is immediate if the `i` flag is given and deferred otherwise.
+#	If the `i` flag isn't given variable references must be escaped.
+#---------------------------------------------------------------------------------
 define config_option_s =
 $(if $(findstring i,$1),$(eval $2 := $(call or_default,$2,$3)),$(eval $2 ?= $3))
 endef
-
-, := ,
-__SPACE :=
-__SPACE +=
-$(__SPACE) :=
-$(__SPACE) +=

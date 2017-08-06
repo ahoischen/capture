@@ -14,36 +14,51 @@ include $(MAKEMODULES_DIR)/AssertEnvironment
 #include $(MAKEMODULES_DIR)/AssertParameters
 
 #---------------------------------------------------------------------------------
-# TOOLING CONFIGURATION
-# All these values are defined to be either a possibly exported value or the
-# second parameter.
-#- VARIABLE_NAME ----- IMMEDIATE ?= ----- VARIABLE_NAME ------- VALUE ------------
+# GENERAL CONFIGURATION
+#	Configures directories and tools for the build.
+#--------------------------- NAME -------------- VALUE ---------------------------
+# Makerom and bannertool are the commands to launch those tools. 
 $(call config_option_s,i,	MAKEROM,			makerom)
 $(call config_option_s,i,	BANNERTOOL,			bannertool)
-$(call config_option_s,i,	INTERMEDIATE_DIR,	build)
+
 $(call config_option_s,i,	OUTPUT_DIR,			output)
+$(call config_option_s,i,	INTERMEDIATE_DIR,	build)
 $(call config_option_s,i,	OFILES_DIR,			$(INTERMEDIATE_DIR)/build)
 $(call config_option_s,i,	PATCHED_MAKE_DIR,	$(INTERMEDIATE_DIR)/makefiles)
 $(call config_option_s,i,	DEPSDIR,			$(INTERMEDIATE_DIR)/deps)
 $(call config_option_s,i,	TEST_ROMFS_TEMPDIR,	$(INTERMEDIATE_DIR)/test-romfs)
+
 #---------------------------------------------------------------------------------
 # REGULAR CONFIGURATION
-#----------------------- NAME --- VALUE FOR REGULAR BUILDS ---- VALUE FOR TEST BUILDS
-$(call config_option_t,i,TARGET,	build,						test)
-$(call config_option_t,i,OUTPUT,	$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
-$(call config_option_t,i,SOURCES,	$(shell find source -type d -print), $(shell find test -type d -print))
-$(call config_option_t,i,INCLUDES,	include Catch/single_include cpptoml/include, cpptoml/include, Catch/single_include)
-$(call config_option_t,i,DATA,		data,						test-data)
-$(call config_option_t,i,PRODUCTCODE,	CTR-P-CTAP,				CTR-P-CTAP)
-$(call config_option_t,i,ROMFS_DIR,	romfs,						romfs)
-$(call config_option_t,i,UNIQUEID,	6d40a6,						6b40a6)
-$(call config_option_t,i,RSFFILE,	assets/Application.rsf,		assets/Application.rsf)
-$(call config_option_t,i,APP_TITLE,	$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+#-------------------------- NAME ---------- VALUE FOR REGULAR BUILDS -- VALUE FOR TEST BUILDS
+# The command to build the regular and test targets.
+$(call config_option_t,i,	TARGET,			build,						test)
+
+# name and place to outptu binaries to. File extensions are appended automatically.
+$(call config_option_t,i,OUTPUT,			$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
+
+# Directories for various files.
+$(call config_option_t,i,SOURCES,			$(shell find source -type d -print), $(shell find test -type d -print))
+$(call config_option_t,i,INCLUDES,			include Catch/single_include cpptoml/include, cpptoml/include, Catch/single_include)
+$(call config_option_t,i,DATA,				data,						test-data)
+$(call config_option_t,i,ROMFS_DIR,			romfs,						romfs)
+
+# Settings for cia and cci. If the given rsf doesn't take command line options PRODUCTCODE and UniqeID
+# can be ignored.
+$(call config_option_t,i,PRODUCTCODE,		CTR-P-CTAP,				CTR-P-CTAP)
+$(call config_option_t,i,UNIQUEID,			6d40a6,						6b40a6)
+$(call config_option_t,i,RSFFILE,			assets/Application.rsf,		assets/Application.rsf)
+$(call config_option_t,i,BANNER_IMAGE,		assets/image.png,		assets/image.png)
+$(call config_option_t,i,BANNER_AUDIO,		assets/audio.wav,		assets/audio.wav)
+
+# Settings for 3dsx files. Unlike in the example Makefile, these values don't default if left
+# empty.
+$(call config_option_t,i,APP_TITLE,			$(notdir $(CURDIR)),		$(notdir $(CURDIR))_capture)
 $(call config_option_t,i,APP_DESCRIPTION,	Built with devkitARM & libctru,	Built with devkitARM & libctru)
-$(call config_option_t,i,APP_AUTHOR,	Unspecified Author,		Unspecified Author)
-$(call config_option_t,i,APP_ICON,	$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
-$(call config_option_t,i,BANNER_IMAGE,	assets/image.png,		assets/image.png)
-$(call config_option_t,i,BANNER_AUDIO,	assets/audio.wav,		assets/audio.wav)
+$(call config_option_t,i,APP_AUTHOR,		Unspecified Author,		Unspecified Author)
+$(call config_option_t,i,APP_ICON,			$(CTRULIB)/default_icon.png,	$(CTRULIB)/default_icon.png)
+
+# Compiler flags. Be sure to escape variable references in CXXFLAGS.
 $(call config_option_t,i,ARCH,			-march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft)
 $(call config_option_t,i,CFLAGS,		-g -Wall -O2 -mword-relocations -ffunction-sections $(BUILD_ARCH), \
 										-g -Wall -O2 -mword-relocations -ffunction-sections $(TEST_ARCH))
@@ -56,7 +71,7 @@ $(call config_option_t,i,LDFLAGS,		-specs=3dsx.specs -g $(BUILD_ARCH) -Wl$(,)-Ma
 $(call config_option_t,i,LIBS,			-lctru -lm,				)
 $(call config_option_t,i,LIBDIRS,		$(CTRULIB),				)
 
-
+#---------------------------------------------------------------------------------
 
 .DEFAULT_GOAL 		:= all
 
